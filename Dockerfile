@@ -45,7 +45,6 @@ ENV DISABLE_TELEMETRY true
 ENV CODE_VERSION="1.903-vsc1.33.1"
 
 RUN curl -sL https://github.com/codercom/code-server/releases/download/${CODE_VERSION}/code-server${CODE_VERSION}-linux-x64.tar.gz | tar --strip-components=1 -zx -C /usr/local/bin code-server${CODE_VERSION}-linux-x64/code-server
-
 # Setup User
 RUN groupadd -r coder \
     && useradd -m -r coder -g coder -s /bin/bash \
@@ -83,10 +82,12 @@ COPY ./download/public/theme.css ./public/
 COPY ./download/public/index.js ./public/
 COPY ./download/public/desktop.jpg ./public/
 
+
 RUN pip3 install virtualenvwrapper
 ENV VIRTUALENVWRAPPER_PYTHON /usr/bin/python3
 RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh;  mkvirtualenv -p /usr/bin/python3 advanced_web_dev"
-RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh;  workon advanced_web_dev; pip install django==3.0.3; pip install psycopg2; pip install djangorestframework; pip install factory_boy; pip install django-bootstrap4"
+RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh;  workon advanced_web_dev; pip install django==3.0.3; pip install psycopg2; pip install djangorestframework; pip install factory_boy; pip install django-bootstrap4; pip install channels"
+RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh;  workon advanced_web_dev; pip install channels-redis; pip install celery[redis]; pip install Pillow; pip install redis"
 
 RUN echo 'export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3' >> ~/.bashrc
 # RUN echo 'export WORKON_HOME=/home/coder/project/envs' >> ~/.bashrc
@@ -94,6 +95,8 @@ RUN echo 'source /usr/local/bin/virtualenvwrapper.sh 2> /dev/null' >> ~/.bashrc
 RUN echo 'export LANGUAGE=en_US.UTF-8' >> ~/.bashrc
 RUN echo 'export LANG=en_US.UTF-8' >> ~/.bashrc
 RUN echo 'export LC_ALL=en_US.UTF-8' >> ~/.bashrc
+RUN echo 'export C_FORCE_ROOT=True' >> ~/.bashrc
+RUN echo 'export C_FORCE_ROOT=True' >> /home/coder/.bashrc
 RUN echo 'export LANGUAGE=en_US.UTF-8' >> /home/coder/.bashrc
 RUN echo 'export LANG=en_US.UTF-8' >> /home/coder/.bashrc
 RUN echo 'export LC_ALL=en_US.UTF-8' >> /home/coder/.bashrc
@@ -133,3 +136,15 @@ VOLUME /home/coder/project/
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 CMD ["/usr/bin/supervisord"]
+
+### SET UP redis 5
+COPY redis-5.0.9.tar.gz /root
+WORKDIR /root
+RUN tar -zxvf redis-5.0.9.tar.gz
+WORKDIR /root/redis-5.0.9
+RUN make
+RUN make install
+WORKDIR /root
+RUN rm -rf redis-5.0.9/
+
+WORKDIR /home/coder/project
